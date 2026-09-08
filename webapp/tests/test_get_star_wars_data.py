@@ -6,7 +6,7 @@ from webapp.src.app import app
 
 client = TestClient(app)
 
-# Tests para /data
+# Tests for /data
 def test_get_star_wars_data():
     response = client.get("/data")
     assert response.status_code == 200
@@ -41,7 +41,7 @@ def test_get_star_wars_data_timeout():
         response = client.get("/data?id=1")
         assert response.status_code == 503
 
-# Tests para /
+# Tests for /
 def test_hello():
     response = client.get("/")
     assert response.status_code == 200
@@ -56,7 +56,7 @@ def test_hello_custom_message():
         response = custom_client.get("/")
         assert response.status_code == 200
 
-# Tests para /top-people-by-bmi
+# Tests for /top-people-by-bmi
 def test_top_people_by_bmi():
     response = client.get("/top-people-by-bmi")
     assert response.status_code == 200
