@@ -1,20 +1,19 @@
+import os
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 app = FastAPI()
 
+HELLO_MESSAGE = os.getenv("HELLO_MESSAGE", "Hello, World!")
 
 @app.get("/")
 def hello():
-    # TODO: Replace the message below with the value of a configuration parameter
-    return {"message": "Hello, World!"}
-
+    return {"message": HELLO_MESSAGE}
 
 @app.get("/data")
-def get_star_wars_data():
+def get_star_wars_data(id: int = Query(1, description="Star Wars person ID")):
     try:
-        # TODO: Replace the "1" in the URL below with the value of a query parameter
-        response = requests.get("https://swapi.info/api/people/1", timeout=5)
+        response = requests.get(f"https://swapi.info/api/people/{id}", timeout=5)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.HTTPError as e:
@@ -24,11 +23,28 @@ def get_star_wars_data():
     except (KeyError, ValueError) as e:
         raise HTTPException(status_code=500, detail="Data Processing Error")
 
+@app.get("/top-people-by-bmi")
+def top_people_by_bmi():
+    try:
+        response = requests.get("https://swapi.info/api/people", timeout=10)
+        response.raise_for_status()
+        people = response.json()
 
-# TODO: Add new endpoint to return the top 20 people in the Star Wars API with the highest BMI.
+        results = []
+        for person in people:
+            try:
+                mass = float(person["mass"].replace(",", ""))
+                height = float(person["height"])
+                if height > 0:
+                    bmi = mass / ((height / 100) ** 2)
+                    results.append({"name": person["name"], "bmi": round(bmi, 2)})
+            except (ValueError, KeyError):
+                continue
 
+        results.sort(key=lambda x: x["bmi"], reverse=True)
+        return results[:20]
 
-if __name__ == "__main__":
-    import uvicorn
-    
-    uvicorn.run("app:app", host="0.0.0.0", port=8000)
+    except requests.exceptions.HTTPError:
+        raise HTTPException(status_code=500, detail="API Error")
+    except requests.exceptions.RequestException:
+        raise HTTPException(status_code=503, detail="Service Unavailable")
