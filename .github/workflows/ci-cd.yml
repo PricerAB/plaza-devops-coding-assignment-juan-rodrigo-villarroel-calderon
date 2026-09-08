@@ -33,6 +33,7 @@ jobs:
           echo "TF_VAR_namespace=candidate-$candidate" >> $GITHUB_ENV
           echo "TF_VAR_helm_release_name=candidate-$candidate" >> $GITHUB_ENV
           echo "TF_VAR_image_repository=$image_repository" >> $GITHUB_ENV
+          echo "TF_VAR_image_tag=${{ github.sha }}" >> $GITHUB_ENV
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -43,6 +44,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       # TODO: Add step(s) to run tests here
+      - name: Run tests
+        run: |
+          pip install -r webapp/requirements.txt
+          pytest webapp/tests/ -v
 
       - name: Setup Workload Identity Federation
         id: auth
@@ -61,6 +66,10 @@ jobs:
           gcloud auth configure-docker -q europe-north1-docker.pkg.dev
 
       # TODO: Add step(s) to build the docker image and push it to the container registry here
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ env.image_repository }}:${{ github.sha }} webapp/
+          docker push ${{ env.image_repository }}:${{ github.sha }}
 
       - name: Configure GKE cluster access
         uses: google-github-actions/get-gke-credentials@v2
@@ -70,3 +79,8 @@ jobs:
           cluster_name: ${{ env.CLUSTER_NAME }}
 
       # TODO: Add step(s) to install/upgrade the application by terraform in the Kubernetes cluster here
+      - name: Deploy with Terraform
+        run: |
+          cd services
+          terraform init
+          terraform apply -auto-approve
