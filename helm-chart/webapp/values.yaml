@@ -24,3 +24,5 @@ serviceAccount:
 service:
   type: ClusterIP
   port: 80
+
+helloWorldMessage: "Hello, World!"
